@@ -1,0 +1,583 @@
+<html><head><base href="https://play.galvetetris.com/">
+<title>Galve Tetris</title>
+<style>
+:root {
+  --grid-size: 20px;
+}
+
+body {
+  background: linear-gradient(180deg, #0d47a1 0%, #1565c0 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Press Start 2P', system-ui;
+  color: #fff;
+  margin: 0;
+  min-height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.floating-text {
+  position: fixed;
+  font-size: 150px;
+  color: rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 0;
+  text-transform: uppercase;
+  font-weight: bold;
+  animation: floatText 20s linear infinite;
+}
+
+.floating-text:nth-child(2) {
+  animation-delay: -10s;
+  top: 60%;
+}
+
+@keyframes floatText {
+  0% {
+    transform: translateX(100vw) rotate(5deg);
+  }
+  100% {
+    transform: translateX(-100%) rotate(5deg);
+  }
+}
+
+.snowfall {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.snowflake {
+  position: absolute;
+  background: #fff;
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: snowfall linear infinite;
+}
+
+@keyframes snowfall {
+  0% {
+    transform: translateY(-10px) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) translateX(100px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.game-container {
+  display: none; /* Hide game initially */
+  position: relative;
+  margin: 20px;
+  z-index: 2;
+}
+
+.score-display {
+  position: absolute;
+  right: -162px;
+  top: 0;
+  width: 140px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #333;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+
+.next-piece {
+  margin-top: 15px;
+  padding: 8px;
+  border: 2px solid #333;
+}
+
+.cell {
+  width: var(--grid-size);
+  height: var(--grid-size);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.controls {
+  display: none; /* Hide controls initially */
+  margin-top: 20px;
+  text-align: center;
+  font-size: 0.8em;
+  color: #fff;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+  position: relative;
+}
+
+h1 {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  z-index: 2;
+  position: relative;
+}
+
+.start-button {
+  padding: 15px 30px;
+  font-family: 'Press Start 2P', system-ui;
+  font-size: 1.2em;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  z-index: 2;
+  position: relative;
+  margin: 20px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.start-button:hover {
+  background: #45a049;
+  transform: scale(1.05);
+}
+
+.restart-button {
+  padding: 15px 30px;
+  font-family: 'Press Start 2P', system-ui;
+  font-size: 1.2em;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  z-index: 2;
+  position: relative;
+  margin: 20px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.restart-button:hover {
+  background: #45a049;
+  transform: scale(1.05);
+}
+
+.hold-button {
+  padding: 10px 20px;
+  font-family: 'Press Start 2P', system-ui;
+  font-size: 0.8em;
+  background: #f44336;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  z-index: 2;
+  position: relative;
+  margin: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.hold-button:hover {
+  background: #d32f2f;
+  transform: scale(1.05);
+}
+</style>
+</head>
+<body>
+<div class="floating-text">Tetris</div>
+<div class="floating-text">Tetris</div>
+<div class="snowfall" id="snowfall"></div>
+<h1>Galve Tetris</h1>
+<div id="startScreen">
+  <button class="start-button" id="startButton">Start Game</button>
+</div>
+<div class="game-container">
+  <canvas id="gameBoard" class="game-board" width="200" height="400"></canvas>
+  <button class="hold-button" id="holdButton">Hold/Pause</button>
+    <div class="score-display">
+      <p>Score: <span id="score">0</span></p>
+      <p>Level: <span id="level">1</span></p>
+      <div class="next-piece">
+        <p>Next:</p>
+        <canvas id="nextPiece" width="100" height="100"></canvas>
+      </div>
+    </div>
+
+</div>
+<div class="controls">
+  <p>← → : Move</p>
+  <p>↑ : Rotate</p>
+  <p>↓ : Soft Drop</p>
+  <p>Space : Hard Drop</p>
+  <p>P : Pause</p>
+  <p>C : Hold/Swap</p>
+</div>
+
+<script>
+class Game {
+  constructor() {
+    this.canvas = document.getElementById('gameBoard');
+    this.ctx = this.canvas.getContext('2d');
+    this.nextCanvas = document.getElementById('nextPiece');
+    this.nextCtx = this.nextCanvas.getContext('2d');
+    this.grid = Array(20).fill().map(() => Array(10).fill(0));
+    this.score = 0;
+    this.level = 1;
+    this.gameOver = false;
+    this.paused = false;
+    this.holdPiece = null;
+    this.canHold = true;
+    
+    this.currentPiece = this.newPiece();
+    this.nextPiece = this.newPiece();
+    
+    this.dropCounter = 0;
+    this.dropInterval = 1000;
+    this.lastTime = 0;
+    
+    this.ghostPiece = null;
+    
+    // Add hold button functionality
+    const holdButton = document.getElementById('holdButton');
+    holdButton.addEventListener('click', () => {
+      this.paused = !this.paused;
+      holdButton.textContent = this.paused ? 'Resume' : 'Hold/Pause';
+    });
+    
+    this.initControls();
+    this.update();
+  }
+
+  init() {
+    this.grid = Array(20).fill().map(() => Array(10).fill(0));
+    this.score = 0;
+    this.level = 1;
+    document.getElementById('score').textContent = this.score;
+    document.getElementById('level').textContent = this.level;
+  }
+
+  newPiece() {
+    const pieces = 'ILJOTSZ';
+    const piece = {
+      pos: {x: 3, y: 0},
+      shape: this.createPiece(pieces[Math.floor(Math.random() * pieces.length)]),
+      color: COLORS[Math.floor(Math.random() * COLORS.length)]
+    };
+    return piece;
+  }
+
+  createPiece(type) {
+    switch(type) {
+      case 'I': return [[1, 1, 1, 1]];
+      case 'L': return [[1, 1, 1], [1, 0, 0]];
+      case 'J': return [[1, 1, 1], [0, 0, 1]];
+      case 'O': return [[1, 1], [1, 1]];
+      case 'T': return [[1, 1, 1], [0, 1, 0]];
+      case 'S': return [[0, 1, 1], [1, 1, 0]];
+      case 'Z': return [[1, 1, 0], [0, 1, 1]];
+    }
+  }
+
+  rotate(piece) {
+    const newShape = piece.shape[0].map((_, i) =>
+      piece.shape.map(row => row[i]).reverse()
+    );
+    const pos = piece.pos;
+    
+    if (this.isValid(pos.x, pos.y, newShape)) {
+      piece.shape = newShape;
+    }
+  }
+
+  isValid(x, y, shape) {
+    for (let row = 0; row < shape.length; row++) {
+      for (let col = 0; col < shape[row].length; col++) {
+        if (shape[row][col] !== 0) {
+          const newX = x + col;
+          const newY = y + row;
+          if (newX < 0 || newX >= 10 || newY >= 20) return false;
+          if (newY >= 0 && this.grid[newY][newX]) return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  merge() {
+    this.currentPiece.shape.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (value !== 0) {
+          const newY = this.currentPiece.pos.y + y;
+          const newX = this.currentPiece.pos.x + x;
+          if (newY >= 0) {
+            this.grid[newY][newX] = this.currentPiece.color;
+          }
+        }
+      });
+    });
+  }
+
+  clearLines() {
+    let linesCleared = 0;
+    outer: for (let y = this.grid.length - 1; y >= 0; y--) {
+      for (let x = 0; x < this.grid[y].length; x++) {
+        if (this.grid[y][x] === 0) continue outer;
+      }
+      
+      const row = this.grid.splice(y, 1)[0];
+      this.grid.unshift(row.fill(0));
+      y++;
+      linesCleared++;
+    }
+    
+    if (linesCleared > 0) {
+      this.score += [40, 100, 300, 1200][linesCleared - 1] * this.level;
+      document.getElementById('score').textContent = this.score;
+      
+      this.level = Math.floor(this.score / 100) + 1;
+      document.getElementById('level').textContent = this.level;
+      this.dropInterval = 1000 - (this.level - 1) * 100;
+    }
+  }
+
+  drop() {
+    this.canHold = true;
+    this.currentPiece.pos.y++;
+    if (!this.isValid(this.currentPiece.pos.x, this.currentPiece.pos.y, this.currentPiece.shape)) {
+      this.currentPiece.pos.y--;
+      this.merge();
+      this.clearLines();
+      if (this.currentPiece.pos.y <= 0) {
+        this.gameOver = true;
+        return;
+      }
+      this.currentPiece = this.nextPiece;
+      this.nextPiece = this.newPiece();
+      this.updateGhostPiece();
+    }
+    this.dropCounter = 0;
+  }
+
+  hardDrop() {
+    while (this.isValid(this.currentPiece.pos.x, this.currentPiece.pos.y + 1, this.currentPiece.shape)) {
+      this.currentPiece.pos.y++;
+    }
+    this.drop();
+  }
+
+  move(dir) {
+    this.currentPiece.pos.x += dir;
+    if (!this.isValid(this.currentPiece.pos.x, this.currentPiece.pos.y, this.currentPiece.shape)) {
+      this.currentPiece.pos.x -= dir;
+    } else {
+      this.updateGhostPiece();
+    }
+  }
+
+  updateGhostPiece() {
+    this.ghostPiece = {
+      pos: {...this.currentPiece.pos},
+      shape: this.currentPiece.shape,
+      color: 'rgba(255, 255, 255, 0.2)'
+    };
+    
+    while (this.isValid(this.ghostPiece.pos.x, this.ghostPiece.pos.y + 1, this.ghostPiece.shape)) {
+      this.ghostPiece.pos.y++;
+    }
+  }
+
+  draw() {
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    
+    // Draw ghost piece
+    if (this.ghostPiece) {
+      this.drawPiece(this.ctx, this.ghostPiece);
+    }
+    
+    // Draw grid
+    this.grid.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (value) {
+          this.ctx.fillStyle = value;
+          this.ctx.fillRect(x * 20, y * 20, 20, 20);
+          this.ctx.strokeStyle = 'white';
+          this.ctx.strokeRect(x * 20, y * 20, 20, 20);
+        }
+      });
+    });
+    
+    // Draw current piece
+    this.drawPiece(this.ctx, this.currentPiece);
+    
+    // Draw next piece preview
+    this.nextCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    this.nextCtx.fillRect(0, 0, this.nextCanvas.width, this.nextCanvas.height);
+    this.drawPiece(this.nextCtx, {
+      pos: {x: 1.5, y: 1.5},
+      shape: this.nextPiece.shape,
+      color: this.nextPiece.color
+    }, 15);
+  }
+
+  drawPiece(context, piece, size = 20) {
+    piece.shape.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (value) {
+          context.fillStyle = piece.color;
+          context.fillRect((piece.pos.x + x) * size, (piece.pos.y + y) * size, size, size);
+          context.strokeStyle = 'white';
+          context.strokeRect((piece.pos.x + x) * size, (piece.pos.y + y) * size, size, size);
+        }
+      });
+    });
+  }
+
+  update(time = 0) {
+    if (this.gameOver) {
+      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.fillStyle = 'white';
+      this.ctx.font = '20px "Press Start 2P"';
+      this.ctx.textAlign = 'center';
+      this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2);
+      
+      // Show restart button if not already shown
+      if (!document.getElementById('restartButton')) {
+        const restartButton = document.createElement('button');
+        restartButton.id = 'restartButton';
+        restartButton.className = 'restart-button';
+        restartButton.textContent = 'Restart Game';
+        restartButton.addEventListener('click', () => {
+          // Remove the restart button
+          restartButton.remove();
+          // Reset game state
+          this.grid = Array(20).fill().map(() => Array(10).fill(0));
+          this.score = 0;
+          this.level = 1;
+          this.gameOver = false;
+          this.currentPiece = this.newPiece();
+          this.nextPiece = this.newPiece();
+          this.dropCounter = 0;
+          this.lastTime = 0;
+          document.getElementById('score').textContent = this.score;
+          document.getElementById('level').textContent = this.level;
+          // Restart game loop
+          this.update();
+        });
+        document.querySelector('.game-container').appendChild(restartButton);
+      }
+      return;
+    }
+
+    const deltaTime = time - this.lastTime;
+    this.lastTime = time;
+    
+    if (!this.paused) {
+      this.dropCounter += deltaTime;
+      if (this.dropCounter > this.dropInterval) {
+        this.drop();
+      }
+    }
+    
+    this.draw();
+    requestAnimationFrame(this.update.bind(this));
+  }
+
+  initControls() {
+    document.addEventListener('keydown', event => {
+      if (this.gameOver) return;
+      
+      switch(event.keyCode) {
+        case 37: // Left
+          this.move(-1);
+          break;
+        case 39: // Right
+          this.move(1);
+          break;
+        case 40: // Down
+          this.drop();
+          break;
+        case 38: // Up
+          this.rotate(this.currentPiece);
+          this.updateGhostPiece();
+          break;
+        case 32: // Space
+          this.hardDrop();
+          break;
+        case 80: // P
+          this.paused = !this.paused;
+          break;
+        case 67: // C
+          this.holdPieceFunction();
+          break;
+      }
+    });
+  }
+
+  holdPieceFunction() {
+    // Hold button now only handles pause
+    this.paused = !this.paused;
+    const holdButton = document.getElementById('holdButton');
+    holdButton.textContent = this.paused ? 'Resume' : 'Hold/Pause';
+  }
+}
+
+// Start the game and create snowflakes
+function createSnowflakes() {
+  const snowfall = document.getElementById('snowfall');
+  const numberOfSnowflakes = 100;
+
+  for (let i = 0; i < numberOfSnowflakes; i++) {
+    const snowflake = document.createElement('div');
+    snowflake.className = 'snowflake';
+    const size = Math.random() * 4 + 2;
+    const startingLeft = Math.random() * 100;
+    const animationDuration = Math.random() * 5 + 5;
+    const animationDelay = Math.random() * 5;
+    
+    snowflake.style.width = `${size}px`;
+    snowflake.style.height = `${size}px`;
+    snowflake.style.left = `${startingLeft}%`;
+    snowflake.style.animationDuration = `${animationDuration}s`;
+    snowflake.style.animationDelay = `-${animationDelay}s`;
+    
+    snowfall.appendChild(snowflake);
+  }
+}
+
+const COLORS = [
+  '#00f0f0', // cyan
+  '#f0f000', // yellow
+  '#a000f0', // purple
+  '#f0a000', // orange
+  '#0000f0', // blue
+  '#00f000', // green
+  '#f00000', // red
+];
+
+window.onload = () => {
+  createSnowflakes();
+  let game;
+  
+  const startButton = document.getElementById('startButton');
+  const gameContainer = document.querySelector('.game-container');
+  const controls = document.querySelector('.controls');
+  
+  startButton.addEventListener('click', () => {
+    startButton.parentElement.style.display = 'none';
+    gameContainer.style.display = 'block';
+    controls.style.display = 'block';
+    game = new Game();
+  });
+};
+</script>
+</body></html>
